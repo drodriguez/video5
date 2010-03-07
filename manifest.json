@@ -1,0 +1,12 @@
+{
+  "name": "Video5",
+  "version": "0.1",
+  "description": "Loads HTML 5 video instead of using Flash for supported websites.",
+  "content_scripts": [
+    {
+      "matches": ["http://*/*"],
+      "css": ["video5.css"],
+      "js": ["jquery.js", "video5.js"]
+    }
+  ]
+}
