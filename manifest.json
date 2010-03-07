@@ -4,7 +4,7 @@
   "description": "Loads HTML 5 video instead of using Flash for supported websites.",
   "content_scripts": [
     {
-      "matches": ["http://*/*"],
+      "matches": ["http://*/*", "file://*/*"],
       "css": ["video5.css"],
       "js": ["jquery.js", "video5.js"]
     }
