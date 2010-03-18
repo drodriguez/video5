@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	</head>
+	<body>
+		<script type="text/javascript" src="jquery.js"></script>
+		<script>
+			function ajax(sender, args, callback) {
+				/* args.success = function(data, textStatus) {
+					callback({type: 'success', data: data, textStatus: textStatus});
+				};
+				args.error = function(xhr, textStatus, errorThrown) {
+					callback({type: 'error', xhr: xhr, textStatus: textStatus, errorThrown: errorThrown});
+				}; */
+				args.complete = function(xhr, textStatus) {
+					var data = xhr.responseText;
+					var responseHeaders = xhr.getAllResponseHeaders();
+					callback({type: 'complete', data: data, textStatus: textStatus, responseHeaders: responseHeaders});
+				}
+				jQuery.ajax(args);
+			}
+			
+			function onRequest(request, sender, callback) {
+				if (request.action == 'ajax') {
+					ajax(sender, request.args, callback);
+				}
+			}
+			
+			chrome.extension.onRequest.addListener(onRequest);
+		</script>
+	</body>
+</html>

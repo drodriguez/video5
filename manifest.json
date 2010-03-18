@@ -8,5 +8,9 @@
       "css": ["video5.css"],
       "js": ["jquery.js", "video5.js"]
     }
-  ]
+  ],
+  "permissions": [
+    "http://www.youtube.com/*"
+  ],
+  "background_page": "background.html"
 }
