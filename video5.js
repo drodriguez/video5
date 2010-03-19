@@ -1,15 +1,27 @@
 ;(function() {
   var re = new RegExp('^http://www.youtube.com/v/', 'i');
-  var videoIDre = new RegExp('/([A-Z0-9]+)(&|$)', 'i');
+  var videoIDre = new RegExp('/([-A-Z0-9]+)(&|$)', 'i');
   var ytWatchURL = function(videoID) { return "http://www.youtube.com/watch?v=" + videoID; };
   var ytVideoSDURL = function(videoID, videoHash) { return "http://www.youtube.com/get_video?fmt=18&video_id=" + videoID + "&t=" + videoHash; };
   var ytVideoHDURL = function(videoID, videoHash) { return "http://www.youtube.com/get_video?fmt=22&video_id=" + videoID + "&t=" + videoHash; };
   var ytSwfVarsRe = [new RegExp("var swfArgs = \\{(.*?)\\}"), new RegExp("'SWF_ARGS': \\{(.*?)\\}")];
   
-  jQuery('object[type=application/x-shockwave-flash]').each(function(idx) {
+  jQuery('object[type=application/x-shockwave-flash], object > param[name=movie]').each(modifyObjectOrEmbed);
+  
+  function modifyObjectOrEmbed() {
     var obj = jQuery(this);
-    if (re.test(obj.attr('data'))) {
-      var videoID = videoIDre.exec(obj.attr('data'))[1];
+    
+    var videoID = null;
+    if (obj[0].tagName == 'PARAM') {
+      videoID = videoIDre.exec(obj.attr('value'));
+      obj = obj.parent();
+    } else if (obj[0].tagName == 'OBJECT') {
+      videoID = videoIDre.exec(obj.attr('data'));
+    }
+    
+    if (videoID) {
+      // this is actually a YouTube video
+      videoID = videoID[1];
       console.log(videoID);
       chrome.extension.sendRequest({action: 'ajax',
         args: {
@@ -17,7 +29,7 @@
           url: ytWatchURL(videoID)
       }}, function(response) { handleFlashVars(response, obj, videoID); });
     }
-  });
+  }
   
   function handleFlashVars(response, obj, videoID) {
     if (response.textStatus != 'success') {
@@ -54,7 +66,7 @@
     
     videoHash = flashVars['t'];
     
-    var pingReady = [false, false];
+    var pingReady = [null, null];
     chrome.extension.sendRequest({action: 'ajax',
       args: {
         type: 'HEAD',
@@ -69,20 +81,37 @@
   }
   
   function handlePingSDVideo(response, obj, videoID, videoHash, pingReady) {
-    console.log('handlePingSDVideo ' + response.textStatus);
-    if (response.textStatus != 'success') {
-      return;
+    if (response.textStatus == 'success') {
+      pingReady[0] = function() {
+        var videoTag = jQuery('<video src="' + ytVideoSDURL(videoID, videoHash) + '" controls="controls" width="100%" />');
+        obj.replaceWith(videoTag);
+      }
+    } else if (response.textStatus == 'error') {
+      pingReady[0] = false;
     }
     
-    var videoTag = jQuery('<video src="' + ytVideoSDURL(videoID, videoHash) + '" controls="controls" width="100%" />');
-    
-    obj.replaceWith(videoTag);
+    if (pingReady[1] != null && pingReady[1] != false) {
+      console.log('HD from SD callback');
+      pingReady[1]();
+    }
   }
 
   function handlePingHDVideo(response, obj, videoID, videoHash, pingReady) {
-    console.log('handlePingHDVideo ' + response.textStatus + ' ' + response.responseHeaders);
-    if (response.textStatus != 'success') {
-      return;
+    if (response.textStatus == 'success') {
+      pingReady[1] = function() {
+        var videoTag = jQuery('<video src="' + ytVideoHDURL(videoID, videoHash) + '" controls="controls" width="100%" />');
+        obj.replaceWith(videoTag);
+      }
+    } else if (response.textStatus == 'error') {
+      pingReady[1] = false;
+    }
+    
+    if (pingReady[1] != null && pingReady[1] != false) {
+      console.log('HD from HD callback');
+      pingReady[1]();
+    } else if (pingReady[0] != null && pingReady[0] != false) {
+      console.log('SD from HD callback');
+      pingReady[0]();
     }
   }
 })();
