@@ -1,6 +1,6 @@
 {
   "name": "Video5",
-  "version": "0.1",
+  "version": "0.2",
   "description": "Loads HTML 5 video instead of using Flash for supported websites.",
   "content_scripts": [
     {

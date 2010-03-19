@@ -1,117 +1,205 @@
-;(function() {
-  var re = new RegExp('^http://www.youtube.com/v/', 'i');
-  var videoIDre = new RegExp('/([-A-Z0-9]+)(&|$)', 'i');
-  var ytWatchURL = function(videoID) { return "http://www.youtube.com/watch?v=" + videoID; };
-  var ytVideoSDURL = function(videoID, videoHash) { return "http://www.youtube.com/get_video?fmt=18&video_id=" + videoID + "&t=" + videoHash; };
-  var ytVideoHDURL = function(videoID, videoHash) { return "http://www.youtube.com/get_video?fmt=22&video_id=" + videoID + "&t=" + videoHash; };
-  var ytSwfVarsRe = [new RegExp("var swfArgs = \\{(.*?)\\}"), new RegExp("'SWF_ARGS': \\{(.*?)\\}")];
-  
-  jQuery('object[type=application/x-shockwave-flash], object > param[name=movie]').each(modifyObjectOrEmbed);
-  
-  function modifyObjectOrEmbed() {
-    var obj = jQuery(this);
-    
-    var videoID = null;
-    if (obj[0].tagName == 'PARAM') {
-      videoID = videoIDre.exec(obj.attr('value'));
-      obj = obj.parent();
-    } else if (obj[0].tagName == 'OBJECT') {
-      videoID = videoIDre.exec(obj.attr('data'));
-    }
-    
-    if (videoID) {
-      // this is actually a YouTube video
-      videoID = videoID[1];
-      console.log(videoID);
-      chrome.extension.sendRequest({action: 'ajax',
-        args: {
-          type: 'GET',
-          url: ytWatchURL(videoID)
-      }}, function(response) { handleFlashVars(response, obj, videoID); });
-    }
-  }
-  
-  function handleFlashVars(response, obj, videoID) {
-    if (response.textStatus != 'success') {
-      return;
-    }
-    
-    var flashVarsRaw = null;
-    for (var idx = 0; flashVarsRaw == null && idx < ytSwfVarsRe.length; idx++) {
-      flashVarsRaw = ytSwfVarsRe[idx].exec(response.data);
-    }
-    
-    if (flashVarsRaw == null) {
-      console.log('SWF vars not found');
-      return; // we haven't found the flashVars
-    }
-    
-    flashVars = {};
-    flashVarsRaw = flashVarsRaw[1].split(', ');
-    for (var idx = 0; idx < flashVarsRaw.length; idx++) {
-      var keyValues = flashVarsRaw[idx].split(': '),
-          key = keyValues.shift(),
-          val = keyValues.join(': ');
-      
-      if (key.charAt(0) == '"') {
-        key = key.substring(1, key.length - 1);
-      }
-      
-      if (val.charAt(0) == '"') {
-        val = val.substring(1, val.length - 1);
-      }
-      
-      flashVars[key] = val;
-    }
-    
-    videoHash = flashVars['t'];
-    
-    var pingReady = [null, null];
-    chrome.extension.sendRequest({action: 'ajax',
-      args: {
-        type: 'HEAD',
-        url: ytVideoSDURL(videoID, videoHash)
-    }}, function(response) { handlePingSDVideo(response, obj, videoID, videoHash, pingReady); });
-    
-    chrome.extension.sendRequest({action: 'ajax',
-      args: {
-        type: 'HEAD',
-        url: ytVideoHDURL(videoID, videoHash)
-    }}, function(response) { handlePingHDVideo(response, obj, videoID, videoHash, pingReady); });
-  }
-  
-  function handlePingSDVideo(response, obj, videoID, videoHash, pingReady) {
-    if (response.textStatus == 'success') {
-      pingReady[0] = function() {
-        var videoTag = jQuery('<video src="' + ytVideoSDURL(videoID, videoHash) + '" controls="controls" width="100%" />');
-        obj.replaceWith(videoTag);
-      }
-    } else if (response.textStatus == 'error') {
-      pingReady[0] = false;
-    }
-    
-    if (pingReady[1] != null && pingReady[1] != false) {
-      console.log('HD from SD callback');
-      pingReady[1]();
-    }
-  }
+var YouTubeVideo = function(domObject, url) {
+  this.domObject = domObject;
+  this.url = url;
+};
 
-  function handlePingHDVideo(response, obj, videoID, videoHash, pingReady) {
-    if (response.textStatus == 'success') {
-      pingReady[1] = function() {
-        var videoTag = jQuery('<video src="' + ytVideoHDURL(videoID, videoHash) + '" controls="controls" width="100%" />');
-        obj.replaceWith(videoTag);
-      }
-    } else if (response.textStatus == 'error') {
-      pingReady[1] = false;
+YouTubeVideo.youTubeRegEx = new RegExp('^http://www.youtube.com/v/');
+YouTubeVideo.canHandleURL = function(url) {
+  return YouTubeVideo.youTubeRegEx.test(url);
+};
+
+YouTubeVideo.prototype.videoIDRegEx = new RegExp('/([-_A-Z0-9]+)(&|$)', 'i');
+
+YouTubeVideo.prototype.swfVarsRegEx = [
+  new RegExp("var swfArgs = \\{(.*?)\\}"),
+  new RegExp("'SWF_ARGS': \\{(.*?)\\}")
+];
+
+YouTubeVideo.prototype.watchURL = function() {
+  return "http://www.youtube.com/watch?v=" + this.videoID;
+};
+
+YouTubeVideo.prototype.videoSDURL = function() {
+  return "http://www.youtube.com/get_video?fmt=18&video_id=" + this.videoID + "&t=" + this.videoHash;
+};
+
+YouTubeVideo.prototype.videoHDURL = function() {
+  return "http://www.youtube.com/get_video?fmt=22&video_id=" + this.videoID + "&t=" + this.videoHash;
+};
+
+YouTubeVideo.prototype.start = function(response) {
+  this.videoID = this.videoIDRegEx.exec(this.url);
+  
+  if (this.videoID) {
+    this.videoID = this.videoID[1];
+    console.log(this.videoID);
+    
+    var self = this;
+    chrome.extension.sendRequest({action: 'ajax',
+      args: {
+        type: 'GET',
+        url: this.watchURL()
+    }}, function() { return self.parseSwfVars.apply(self, arguments); });
+  }
+};
+
+YouTubeVideo.prototype.parseSwfVars = function(response) {
+  if (response.textStatus != 'success') {
+    return;
+  }
+  
+  var flashVarsRaw = null;
+  for (var idx = 0; flashVarsRaw == null && idx < this.swfVarsRegEx.length; idx++) {
+    flashVarsRaw = this.swfVarsRegEx[idx].exec(response.data);
+  }
+  
+  if (flashVarsRaw == null) {
+    console.log('SWF vars not found');
+    return; // we haven't found the flashVars
+  }
+  
+  this.flashVars = {};
+  flashVarsRaw = flashVarsRaw[1].split(', ');
+  for (var idx = 0; idx < flashVarsRaw.length; idx++) {
+    var keyValues = flashVarsRaw[idx].split(': '),
+        key = keyValues.shift(),
+        val = keyValues.join(': ');
+    
+    if (key.charAt(0) == '"') {
+      key = key.substring(1, key.length - 1);
     }
     
-    if (pingReady[1] != null && pingReady[1] != false) {
-      console.log('HD from HD callback');
-      pingReady[1]();
-    } else if (pingReady[0] != null && pingReady[0] != false) {
-      console.log('SD from HD callback');
-      pingReady[0]();
+    if (val.charAt(0) == '"') {
+      val = val.substring(1, val.length - 1);
+    }
+    
+    this.flashVars[key] = val;
+  }
+  
+  this.videoHash = this.flashVars['t'];
+  
+  this.videoRequestStatus = [null, null];
+  
+  var self = this;
+  chrome.extension.sendRequest({action: 'ajax',
+    args: {
+      type: 'HEAD',
+      url: this.videoSDURL()
+  }}, function() { return self.handleSDVideoResponse.apply(self, arguments); });
+  
+  chrome.extension.sendRequest({action: 'ajax',
+    args: {
+      type: 'HEAD',
+      url: this.videoHDURL()
+  }}, function() { return self.handleHDVideoResponse.apply(self, arguments); });
+};
+
+YouTubeVideo.prototype.handleSDVideoResponse = function(response) {
+  if (response.textStatus == 'success') {
+    this.videoRequestStatus[0] = true;
+  } else if (response.textStatus == 'error' ||
+             response.textStatus == 'timeout') {
+    this.videoRequestStatus[0] = false;
+  }
+  
+  this.replaceFlashObjectWithVideo();
+};
+
+YouTubeVideo.prototype.handleHDVideoResponse = function(response) {
+  if (response.textStatus == 'success') {
+    this.videoRequestStatus[1] = true;
+  } else if (response.textStatus == 'error' ||
+             response.textStatus == 'timeout') {
+    this.videoRequestStatus[1] = false;
+  }
+  
+  this.replaceFlashObjectWithVideo();
+};
+
+YouTubeVideo.prototype.replaceFlashObjectWithVideo = function() {
+  if (this.videoRequestStatus[1] || this.videoRequestStatus[0]) {
+    var videoTag = jQuery('<video controls="controls" width="100%">').attr(
+      'src', this.videoRequestStatus[1] ? this.videoHDURL() : this.videoSDURL());
+    this.domObject.replaceWith(videoTag);
+  }
+};
+
+var VideoHandlers = [YouTubeVideo];
+
+jQuery('object, embed').each(function() {
+  // We handle three situations:
+  // - <embed> alone (as used for example in Google Reader):
+  //   <embed src="http://www.youtube.com/v/32vpgNiAH60&amp;hl=en_US&amp;fs=1&amp;" allowscriptaccess="never" allowfullscreen="true" width="480" height="295" wmode="transparent" type="application/x-shockwave-flash">
+  //   * type should be application/x-shockwave-flash
+  //   * src should be present
+  //   * no <object> tag as (direct) parent
+  // - Using only <object>, as explained in <http://www.bernzilla.com/item.php?id=681>:
+  //   <object type="application/x-shockwave-flash" style="width:425px; height:350px;" data="http://www.youtube.com/v/7_6B6vwE83U">
+  //     <param name="movie" value="http://www.youtube.com/v/7_6B6vwE83U" />
+  //   </object>
+  //   * type should be "applicaiton/x-shockwave-flash"
+  //   * data should be present
+  //   * no embed inside
+  // - YouTube provided code:
+  //   <object width="480" height="385">
+  //     <param name="movie" value="http://www.youtube.com/v/jwMj3PJDxuo&hl=es_ES&fs=1&"></param>
+  //     <param name="allowFullScreen" value="true"></param>
+  //     <param name="allowscriptaccess" value="always"></param>
+  //     <embed src="http://www.youtube.com/v/jwMj3PJDxuo&hl=es_ES&fs=1&" type="application/x-shockwave-flash" allowscriptaccess="always" allowfullscreen="true" width="480" height="385"></embed>
+  //   </object>
+  //   * object with no type or data
+  //   * embed with type "application/x-shockwave-flash"
+  //   * embed with src
+  //   * We also have to handle the cases where embed is found before/after
+  //     object, but we have already handled object as a whole.
+  
+  var obj = jQuery(this);
+  if (this.tagName == 'EMBED') {
+    // First look for the parent.
+    var parent = obj.parent();
+    if (parent[0].tagName == 'OBJECT') {
+      handleObjectTag(parent);
+    } else {
+      handleEmbedTag(obj);
+    }
+  } else if (this.tagName == 'OBJECT') {
+    handleObjectTag(obj);
+  }
+});
+
+function handleEmbedTag(obj) {
+  if (obj.attr('src') !== undefined &&
+      obj.attr('type') == 'application/x-shockwave-flash') {
+    handleTagAndURL(obj, obj.attr('src'));
+  }
+}
+
+function handleObjectTag(obj) {
+  if (obj.attr('data-video5-visited') != 'yes') {
+    if (obj.attr('data') !== undefined &&
+        obj.attr('type') == 'application/x-shockwave-flash') {
+      obj.attr('data-video5-visited', 'yes');
+      handleTagAndURL(obj, obj.attr('data'));
+    } else {
+      var children = obj.children('embed');
+      if (children.length > 0 &&
+          children.attr('src') !== undefined &&
+          children.attr('type') == 'application/x-shockwave-flash') {
+        obj.attr('data-video5-visited', 'yes');
+        handleTagAndURL(obj, children.attr('src'));
+      }
     }
   }
-})();
+}
+
+function handleTagAndURL(obj, url) {
+  for (var idx = 0; idx < VideoHandlers.length; idx++) {
+    var videoHandler = VideoHandlers[idx];
+    
+    if (videoHandler.canHandleURL(url)) {
+      var vh = new videoHandler(obj, url);
+      vh.start();
+      break;
+    }
+  }
+}
