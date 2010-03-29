@@ -118,9 +118,21 @@ YouTubeVideo.prototype.handleHDVideoResponse = function(response) {
 
 YouTubeVideo.prototype.replaceFlashObjectWithVideo = function() {
   if (this.videoRequestStatus[1] || this.videoRequestStatus[0]) {
-    var videoTag = jQuery('<video controls="controls" width="100%">').attr(
-      'src', this.videoRequestStatus[1] ? this.videoHDURL() : this.videoSDURL());
-    this.domObject.replaceWith(videoTag);
+    var videoUrl = this.videoRequestStatus[1] ? this.videoHDURL() : this.videoSDURL(),
+        videoTag = jQuery('<video controls="controls" width="100%">').attr(
+          'src', videoUrl),
+        wrapper = jQuery('<div class="v5-wrapper">'),
+        controls = jQuery('<div class="v5-controls">');
+    wrapper.append(videoTag);
+    this.domObject.replaceWith(wrapper);
+    wrapper.css({
+      'width': videoTag.width(),
+      'height': videoTag.height()
+    });
+    
+    controls.append(jQuery('<a class="v5-goto" href="' + this.watchURL() + '">'));
+    controls.append(jQuery('<a class="v5-download" href="' + videoUrl + '">'));
+    wrapper.append(controls);
   }
 };
 
