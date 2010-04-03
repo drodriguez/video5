@@ -10,9 +10,46 @@ YouTubeVideo.canHandleURL = function(url) {
 
 YouTubeVideo.prototype.videoIDRegEx = new RegExp('/([-_A-Z0-9]+)(&|$)', 'i');
 
+YouTubeVideo.oldSwfVarsSplitter = function(flashVarsRaw) {
+  var flashVars = {};
+  flashVarsRaw = flashVarsRaw.split(', ');
+  for (var idx = 0; idx < flashVarsRaw.length; idx++) {
+    var keyValues = flashVarsRaw[idx].split(': '),
+        key = keyValues.shift(),
+        val = keyValues.join(': ');
+    
+    if (key.charAt(0) == '"') {
+      key = key.substring(1, key.length - 1);
+    }
+    
+    if (val.charAt(0) == '"') {
+      val = val.substring(1, val.length - 1);
+    }
+    
+    flashVars[key] = val;
+  }
+  
+  return flashVars;
+};
+
+YouTubeVideo.newFlashvarsSplitter = function(flashVarsRaw) {
+  var flashVars = {};
+  flashVarsRaw = flashVarsRaw.split('&');
+  for (var idx = 0; idx < flashVarsRaw.length; idx++) {
+    var keyValues = flashVarsRaw[idx].split('='),
+        key = keyValues.shift(),
+        val = keyValues.join('=');
+    
+    flashVars[key] = val;
+  }
+  
+  return flashVars;
+};
+
 YouTubeVideo.prototype.swfVarsRegEx = [
-  new RegExp("var swfArgs = \\{(.*?)\\}"),
-  new RegExp("'SWF_ARGS': \\{(.*?)\\}")
+  [new RegExp('<param name=\\\\"flashvars\\\\" value=\\\\"(.*?)\\\\">'), YouTubeVideo.newFlashvarsSplitter],
+  [new RegExp("var swfArgs = \\{(.*?)\\}"), YouTubeVideo.oldSwfVarsSplitter],
+  [new RegExp("'SWF_ARGS': \\{(.*?)\\}"), YouTubeVideo.oldSwfVarsSplitter]
 ];
 
 YouTubeVideo.prototype.watchURL = function() {
@@ -48,34 +85,19 @@ YouTubeVideo.prototype.parseSwfVars = function(response) {
     return;
   }
   
-  var flashVarsRaw = null;
-  for (var idx = 0; flashVarsRaw == null && idx < this.swfVarsRegEx.length; idx++) {
-    flashVarsRaw = this.swfVarsRegEx[idx].exec(response.data);
+  var flashVarsRaw = null,
+      idx = 0;
+  for (idx = 0; flashVarsRaw == null && idx < this.swfVarsRegEx.length; idx++) {
+    flashVarsRaw = this.swfVarsRegEx[idx][0].exec(response.data);
   }
   
   if (flashVarsRaw == null) {
     console.log('SWF vars not found');
     return; // we haven't found the flashVars
   }
+  idx -= 1; // idx gets increased before exiting the loop
   
-  this.flashVars = {};
-  flashVarsRaw = flashVarsRaw[1].split(', ');
-  for (var idx = 0; idx < flashVarsRaw.length; idx++) {
-    var keyValues = flashVarsRaw[idx].split(': '),
-        key = keyValues.shift(),
-        val = keyValues.join(': ');
-    
-    if (key.charAt(0) == '"') {
-      key = key.substring(1, key.length - 1);
-    }
-    
-    if (val.charAt(0) == '"') {
-      val = val.substring(1, val.length - 1);
-    }
-    
-    this.flashVars[key] = val;
-  }
-  
+  this.flashVars = this.swfVarsRegEx[idx][1](flashVarsRaw[1]);
   this.videoHash = this.flashVars['t'];
   
   this.videoRequestStatus = [null, null];
@@ -128,6 +150,13 @@ YouTubeVideo.prototype.replaceFlashObjectWithVideo = function() {
     wrapper.css({
       'width': videoTag.width(),
       'height': videoTag.height()
+    });
+    
+    videoTag.bind('loadedmetadata', function(e) {
+      wrapper.css({
+        'width': videoTag.width(),
+        'height': videoTag.height()
+      });
     });
     
     controls.append(jQuery('<a class="v5-goto" href="' + this.watchURL() + '">'));

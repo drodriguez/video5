@@ -1,6 +1,6 @@
 {
   "name": "Video5",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Loads HTML 5 video instead of using Flash for supported websites. Uses icons from Glyphish http://glyphish.com/.",
   "content_scripts": [
     {
