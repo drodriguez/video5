@@ -1,12 +1,13 @@
 {
   "name": "Video5",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Loads HTML 5 video instead of using Flash for supported websites. Uses icons from Glyphish http://glyphish.com/.",
   "content_scripts": [
     {
       "matches": ["http://*/*"],
       "css": ["video5.css"],
-      "js": ["jquery.js", "video5.js"]
+      "js": ["jquery.js", "video5.js"],
+      "run_at": "document_start"
     }
   ],
   "permissions": [

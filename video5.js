@@ -167,7 +167,19 @@ YouTubeVideo.prototype.replaceFlashObjectWithVideo = function() {
 
 var VideoHandlers = [YouTubeVideo];
 
-jQuery('object, embed').each(function() {
+jQuery(window).bind('DOMNodeInserted', function(e) {
+  jQuery('object, embed', e.target).each(function() {
+    lookForFlashVideos(this);
+  });
+});
+
+jQuery(function() {
+  jQuery('object, embed').each(function() {
+    lookForFlashVideos(this);
+  });
+});
+
+function lookForFlashVideos(elem) {
   // We handle three situations:
   // - <embed> alone (as used for example in Google Reader):
   //   <embed src="http://www.youtube.com/v/32vpgNiAH60&amp;hl=en_US&amp;fs=1&amp;" allowscriptaccess="never" allowfullscreen="true" width="480" height="295" wmode="transparent" type="application/x-shockwave-flash">
@@ -194,8 +206,8 @@ jQuery('object, embed').each(function() {
   //   * We also have to handle the cases where embed is found before/after
   //     object, but we have already handled object as a whole.
   
-  var obj = jQuery(this);
-  if (this.tagName == 'EMBED') {
+  var obj = jQuery(elem);
+  if (elem.tagName == 'EMBED') {
     // First look for the parent.
     var parent = obj.parent();
     if (parent[0].tagName == 'OBJECT') {
@@ -203,10 +215,10 @@ jQuery('object, embed').each(function() {
     } else {
       handleEmbedTag(obj);
     }
-  } else if (this.tagName == 'OBJECT') {
+  } else if (elem.tagName == 'OBJECT') {
     handleObjectTag(obj);
   }
-});
+}
 
 function handleEmbedTag(obj) {
   if (obj.attr('src') !== undefined &&
