@@ -1,0 +1,49 @@
+.v5-wrapper {
+    position: relative;
+}
+
+.v5-wrapper video {
+    position: absolute;
+}
+
+.v5-controls {
+    border: 1px solid gray;
+    -webkit-border-radius: 4px;
+    position: absolute;
+    color: white;
+    background-color: black;
+    z-index: 1;
+    top: 10px;
+    right: 10px;
+    width: 47px;
+    padding: 2px;
+    opacity: 0;
+    -webkit-transition: 0.5s;
+}
+
+.v5-wrapper:hover .v5-controls {
+    opacity: 0.5;
+}
+
+.v5-controls a {
+    background-color: transparent !important;
+    border: none !important;
+    text-decoration: none !important;
+}
+
+.v5-download {
+    display: block;
+    width: 19px;
+    height: 24px;
+    background-image: url(download.png);
+    margin-right: 4px;
+}
+
+.v5-goto {
+    display: block;
+    float: right;
+    width: 24px;
+    height: 24px;
+    background-image: url(tv.png);
+    margin-left: 23px;
+}
