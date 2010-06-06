@@ -31,7 +31,7 @@
     text-decoration: none !important;
 }
 
-.v5-download {
+.v5-wrapper .v5-controls .v5-download {
     display: block;
     width: 19px;
     height: 24px;
@@ -39,7 +39,7 @@
     margin-right: 4px;
 }
 
-.v5-goto {
+.v5-wrapper .v5-controls .v5-goto {
     display: block;
     float: right;
     width: 24px;
