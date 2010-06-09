@@ -8,12 +8,20 @@ var VideoHandlers = {
         args: {
           type: 'GET',
           url: url
-      }}, function(response) {
-        var handler = eval(response.data + '()');
-        if (handler) {
-          VideoHandlers.handlers.push(handler);
-        }
-      });
+      }},
+      // If we just write the callback function, all handler scripts would be
+      // associated with one single URL. See
+      // http://blog.jbrantly.com/2010/04/creating-javascript-function-inside.html
+      (function(u) {
+        return function(response) {
+          // the special comment allows the eval'd script to be debugged
+          var handler = eval('//@ sourceURL=' + u + '\n' +
+                             response.data + '()');
+          if (handler) {
+            VideoHandlers.handlers.push(handler);
+          }
+        };
+      })(url));
     }
   },
   
