@@ -6,7 +6,7 @@
     {
       "matches": ["http://*/*"],
       "css": ["video5.css"],
-      "js": ["jquery.js", "video5.js"],
+      "js": ["jquery.js", "flashvars.js", "video5.js"],
       "all_frames": true,
       "run_at": "document_start"
     }
