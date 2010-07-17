@@ -65,7 +65,7 @@ var VideoHandlers = {
     wrapper.append(controls);
   }
 };
-VideoHandlers.register('youtube', 'vimeo');
+VideoHandlers.register('youtube', 'vimeo', 'jwplayer');
 
 jQuery(window).bind('DOMNodeInserted', function(e) {
   jQuery('object, embed', e.target).each(function() {
