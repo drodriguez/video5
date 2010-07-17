@@ -1,12 +1,12 @@
-.v5-wrapper {
+div.v5-wrapper {
     position: relative;
 }
 
-.v5-wrapper video {
+div.v5-wrapper video {
     position: absolute;
 }
 
-.v5-controls {
+div.v5-controls {
     border: 1px solid gray;
     -webkit-border-radius: 4px;
     position: absolute;
@@ -18,32 +18,36 @@
     width: 47px;
     padding: 2px;
     opacity: 0;
+    margin: 0;
     -webkit-transition: 0.5s;
 }
 
-.v5-wrapper:hover .v5-controls {
+div.v5-wrapper:hover div.v5-controls {
     opacity: 0.5;
 }
 
-.v5-controls a {
+div.v5-controls a {
     background-color: transparent !important;
     border: none !important;
     text-decoration: none !important;
 }
 
-.v5-download {
-    display: block;
-    width: 19px;
-    height: 24px;
-    background-image: url(download.png);
-    margin-right: 4px;
+div.v5-wrapper div.v5-controls a.v5-download {
+    display: block !important;
+    width: 19px !important;
+    height: 24px !important;
+    background-image: url(download.png) !important;
+    margin: 0 4px 0 0 !important;
+    padding: 0 !important;
+    float: none !important;
 }
 
-.v5-goto {
-    display: block;
-    float: right;
-    width: 24px;
-    height: 24px;
-    background-image: url(tv.png);
-    margin-left: 23px;
+div.v5-wrapper div.v5-controls a.v5-goto {
+    display: block !important;
+    float: right !important;
+    width: 24px !important;
+    height: 24px !important;
+    background-image: url(tv.png) !important;
+    margin: 0 0 0 23px !important;
+    padding: 0 !important;
 }
