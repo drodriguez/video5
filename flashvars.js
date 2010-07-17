@@ -9,8 +9,10 @@ FlashVarsParser.parse = function(domObject) {
   var result = {};
   var keyValueRegExp = new RegExp("^([^=]+)=(.*)$");
   varsString.split("&").forEach(function(item) {
-    var match = keyValueRegExp.exec(item);
-    result[match[1]] = match[2];
+    var match;
+    if ((match = keyValueRegExp.exec(item)) !== null) {
+      result[match[1]] = match[2];
+    }
   });
   
   return result;
