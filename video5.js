@@ -68,9 +68,13 @@ var VideoHandlers = {
 VideoHandlers.register('youtube', 'vimeo', 'jwplayer');
 
 jQuery(window).bind('DOMNodeInserted', function(e) {
-  jQuery('object, embed', e.target).each(function() {
-    lookForFlashVideos(this);
-  });
+  if (e.target.tagName === 'EMBED' || e.target.tagName === 'OBJECT') {
+    lookForFlashVideos(e.target);
+  } else {
+    jQuery('object, embed', e.target).each(function() {
+      lookForFlashVideos(this);
+    });
+  }
 });
 
 jQuery(function() {
@@ -105,7 +109,7 @@ function lookForFlashVideos(node) {
   //   * embed with src
   //   * We also have to handle the cases where embed is found before/after
   //     object, but we have already handled object as a whole.
-  
+
   var nodeObj = jQuery(node);
   if (node.tagName == 'EMBED') {
     // First look for the parent.
@@ -144,4 +148,3 @@ function handleObjectTag(node) {
     }
   }
 }
-
