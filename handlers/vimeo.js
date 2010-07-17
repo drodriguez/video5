@@ -5,10 +5,12 @@ VimeoVideo = function(domObject, url) {
 };
 
 VimeoVideo.vimeoRegEx = new RegExp('^http://(?:www\\.)?vimeo\\.com/.+clip_id=(\\d+)');
-VimeoVideo.canHandleURL = function(url) {
-  console.log('url: ' + url);
-  console.log('result: ' + VimeoVideo.vimeoRegEx.test(url));
-  return VimeoVideo.vimeoRegEx.test(url);
+VimeoVideo.tryHandling = function(node, url) {
+  if (VimeoVideo.vimeoRegEx.test(url)) {
+    return new VimeoVideo(node, url);
+  } else {
+    return null;
+  }
 };
 
 VimeoVideo.prototype.start = function() {

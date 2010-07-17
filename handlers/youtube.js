@@ -5,8 +5,12 @@ var YouTubeVideo = function(domObject, url) {
 };
 
 YouTubeVideo.youTubeRegEx = new RegExp('^http://www\.youtube\.com/v/');
-YouTubeVideo.canHandleURL = function(url) {
-  return YouTubeVideo.youTubeRegEx.test(url);
+YouTubeVideo.tryHandling = function(node, url) {
+  if (YouTubeVideo.youTubeRegEx.test(url)) {
+    return new YouTubeVideo(node, url);
+  } else {
+    return null;
+  }
 };
 
 YouTubeVideo.prototype.videoIDRegEx = new RegExp('/([-_A-Z0-9]+)(&|$)', 'i');

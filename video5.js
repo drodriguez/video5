@@ -25,13 +25,13 @@ var VideoHandlers = {
     }
   },
   
-  handleTagAndURL: function(obj, url) {
+  handleTagAndURL: function(node, url) {
+    var handler;
     for (var idx = 0; idx < this.handlers.length; idx++) {
       var videoHandler = this.handlers[idx];
 
-      if (videoHandler.canHandleURL(url)) {
-        var vh = new videoHandler(obj, url);
-        vh.start();
+      if ((handler = videoHandler.tryHandling(node, url)) !== null) {
+        handler.start();
         break;
       }
     }
@@ -79,7 +79,7 @@ jQuery(function() {
   });
 });
 
-function lookForFlashVideos(elem) {
+function lookForFlashVideos(node) {
   // We handle three situations:
   // - <embed> alone (as used for example in Google Reader):
   //   <embed src="http://www.youtube.com/v/32vpgNiAH60&amp;hl=en_US&amp;fs=1&amp;" allowscriptaccess="never" allowfullscreen="true" width="480" height="295" wmode="transparent" type="application/x-shockwave-flash">
@@ -106,40 +106,40 @@ function lookForFlashVideos(elem) {
   //   * We also have to handle the cases where embed is found before/after
   //     object, but we have already handled object as a whole.
   
-  var obj = jQuery(elem);
-  if (elem.tagName == 'EMBED') {
+  var nodeObj = jQuery(node);
+  if (node.tagName == 'EMBED') {
     // First look for the parent.
-    var parent = obj.parent();
+    var parent = nodeObj.parent();
     if (parent[0].tagName == 'OBJECT') {
       handleObjectTag(parent);
     } else {
-      handleEmbedTag(obj);
+      handleEmbedTag(nodeObj);
     }
-  } else if (elem.tagName == 'OBJECT') {
-    handleObjectTag(obj);
+  } else if (node.tagName == 'OBJECT') {
+    handleObjectTag(nodeObj);
   }
 }
 
-function handleEmbedTag(obj) {
-  if (obj.attr('src') !== undefined &&
-      obj.attr('type') == 'application/x-shockwave-flash') {
-    VideoHandlers.handleTagAndURL(obj, obj.attr('src'));
+function handleEmbedTag(node) {
+  if (node.attr('src')  !== undefined &&
+      node.attr('type') === 'application/x-shockwave-flash') {
+    VideoHandlers.handleTagAndURL(node, node.attr('src'));
   }
 }
 
-function handleObjectTag(obj) {
-  if (obj.attr('data-video5-visited') != 'yes') {
-    if (obj.attr('data') !== undefined &&
-        obj.attr('type') == 'application/x-shockwave-flash') {
-      obj.attr('data-video5-visited', 'yes');
-      VideoHandlers.handleTagAndURL(obj, obj.attr('data'));
+function handleObjectTag(node) {
+  if (node.attr('data-video5-visited') !== 'yes') {
+    if (node.attr('data') !== undefined &&
+        node.attr('type') === 'application/x-shockwave-flash') {
+      node.attr('data-video5-visited', 'yes');
+      VideoHandlers.handleTagAndURL(node, node.attr('data'));
     } else {
-      var children = obj.children('embed');
+      var children = node.children('embed');
       if (children.length > 0 &&
-          children.attr('src') !== undefined &&
-          children.attr('type') == 'application/x-shockwave-flash') {
-        obj.attr('data-video5-visited', 'yes');
-        VideoHandlers.handleTagAndURL(obj, children.attr('src'));
+          children.attr('src')  !== undefined &&
+          children.attr('type') === 'application/x-shockwave-flash') {
+        node.attr('data-video5-visited', 'yes');
+        VideoHandlers.handleTagAndURL(node, children.attr('src'));
       }
     }
   }
