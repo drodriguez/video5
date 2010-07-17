@@ -49,7 +49,7 @@ YouTubeVideo.newFlashvarsSplitter = function(flashVarsRaw) {
 
 YouTubeVideo.prototype.swfVarsRegEx = [
   [new RegExp('<param name=\\\\"flashvars\\\\" value=\\\\"(.*?)\\\\">'), YouTubeVideo.newFlashvarsSplitter],
-  [new RegExp("var swfArgs = \\{(.*?)\\}"), YouTubeVideo.oldSwfVarsSplitter],
+  [new RegExp("var swf(?:Args|Config) = \\{(.*?)\\}"), YouTubeVideo.oldSwfVarsSplitter],
   [new RegExp("'SWF_ARGS': \\{(.*?)\\}"), YouTubeVideo.oldSwfVarsSplitter]
 ];
 
