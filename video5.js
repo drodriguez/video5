@@ -38,10 +38,22 @@ var VideoHandlers = {
   },
   
   replaceFlashObjectWithVideo: function(domObject, videoUrl, options) {
-    var videoTag = jQuery('<video controls="controls" width="100%">').attr(
-                          'src', videoUrl),
+    var videoTag = jQuery('<video controls="controls">').attr('src', videoUrl),
         wrapper  = jQuery('<div class="v5-wrapper">'),
         controls = jQuery('<div class="v5-controls">');
+
+    if (options.width !== undefined) {
+      videoTag[0].setAttribute('width', options.width);
+    } else {
+      videoTag[0].setAttribute('width', '100%');
+    }
+    if (options.height !== undefined) {
+      videoTag[0].setAttribute('height', options.height);
+    }
+    if (options.poster !== undefined) {
+      videoTag.attr('poster', options.poster);
+    }
+
     wrapper.append(videoTag);
     domObject.replaceWith(wrapper);
     wrapper.css({
