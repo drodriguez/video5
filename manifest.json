@@ -12,8 +12,9 @@
     }
   ],
   "permissions": [
-    "http://www.youtube.com/*",
-    "http://vimeo.com/*"
+    "http://*.youtube.com/*",
+    "http://vimeo.com/*",
+    "http://*.vimeo.com/*"
   ],
   "background_page": "background.html"
 }

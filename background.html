@@ -8,8 +8,23 @@
 			function ajax(sender, args, callback) {
 				args.complete = function(xhr, textStatus) {
 					var data = xhr.responseText;
-					callback({data: data, textStatus: textStatus});
-				}
+					
+					var headers = xhr.getAllResponseHeaders();
+					headers = headers.split("\r\n");
+					headerMap = {};
+					for (var idx = 0; idx < headers.length; idx++) {
+						keyValue = headers[idx].split(': ');
+						
+						if (keyValue.length == 2) {
+							headerMap[keyValue[0]] = keyValue[1];
+						} else if (keyValue.length > 2) {
+							headerMap[keyValue[0]] = keyValue.slice(1).join(': ');
+						}
+					}
+					
+					callback({data: data, textStatus: textStatus, headers: headerMap});
+				};
+				
 				jQuery.ajax(args);
 			}
 			

@@ -84,14 +84,36 @@ VimeoVideo.prototype.parseXML = function(response) {
     this.isHD = parseInt(node.first().text(), 10) != 0;
   }
 
-  var videoUrl = 'http://vimeo.com/moogaloop/play/clip:' + this.clipId +
-    '/' + this.requestSignature + '/' + this.requestSignatureExpires + '/?q=hd';
+  this.videoSDURL = 'http://vimeo.com/moogaloop/play/clip:' + this.clipId +
+    '/' + this.requestSignature + '/' + this.requestSignatureExpires;
 
+  var self = this;
+  chrome.extension.sendRequest({action: 'ajax',
+    args: {
+      type: 'HEAD',
+      url: this.videoSDURL
+  }}, function() { return self.handleSDVideoResponse.apply(self, arguments); });
+
+  /*
   VideoHandlers.replaceFlashObjectWithVideo(this.domObject,
     videoUrl,
     { watchURL: this.watchUrl,
       poster: this.thumbnail });
+  */
 };
+
+VimeoVideo.prototype.handleSDVideoResponse = function(response) {
+  if (response.textStatus == 'success' &&
+    response.headers["Content-Type"] === "video/mp4") {
+    VideoHandlers.replaceFlashObjectWithVideo(this.domObject,
+       this.videoSDURL,
+       { watchURL: this.watchUrl,
+         poster: this.thumbnail });
+  } else if (response.textStatus == 'error' ||
+             response.textStatus == 'timeout') {
+    console.log('ouch!');
+  }
+}
 
 return VimeoVideo;
 })
